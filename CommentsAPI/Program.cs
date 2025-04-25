@@ -1,6 +1,9 @@
-using CommetsAPI.Models;
-using CommetsAPI.Repositories;
-using CommetsAPI.Services;
+using CommentsAPI.Data;
+using CommentsAPI.Models;
+using CommentsAPI.Repositories;
+using CommentsAPI.Services;
+using DotNetEnv;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,8 +17,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddSingleton<ICommentRepository, CommentRepository>();
-builder.Services.AddSingleton<CommentService>();
+Env.Load();
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
+
+builder.Services.AddDbContext<CommentDBContext>(options =>
+    options.UseNpgsql(connectionString));
+
+builder.Services.AddScoped<ICommentRepository, PostgresCommentRepository>();
+builder.Services.AddScoped<CommentService>();
 
 var app = builder.Build();
 

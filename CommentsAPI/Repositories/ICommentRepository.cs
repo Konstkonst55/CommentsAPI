@@ -1,6 +1,6 @@
-﻿using CommetsAPI.Models;
+﻿using CommentsAPI.Models;
 
-namespace CommetsAPI.Repositories
+namespace CommentsAPI.Repositories
 {
     public interface ICommentRepository
     {

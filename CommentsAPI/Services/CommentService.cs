@@ -1,9 +1,9 @@
-﻿using CommetsAPI.Models;
-using CommetsAPI.Repositories;
+﻿using CommentsAPI.Models;
+using CommentsAPI.Repositories;
 
-namespace CommetsAPI.Services
+namespace CommentsAPI.Services
 {
-    public class CommentService
+public class CommentService
     {
         private readonly ICommentRepository _repository;
 
