@@ -1,4 +1,5 @@
 using CommentsAPI.Data;
+using CommentsAPI.Logging;
 using CommentsAPI.Models;
 using CommentsAPI.Repositories;
 using CommentsAPI.Services;
@@ -26,37 +27,105 @@ builder.Services.AddDbContext<CommentDBContext>(options =>
 builder.Services.AddScoped<ICommentRepository, PostgresCommentRepository>();
 builder.Services.AddScoped<CommentService>();
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole(); 
+builder.Logging.AddProvider(new LoggerProvider(builder.Services.BuildServiceProvider()));
+
 var app = builder.Build();
 
-app.MapGet("/comments", (CommentService service) =>
+app.MapGet("/comments", (CommentService service, ILogger<Program> logger) =>
 {
-    return Results.Ok(service.GetAll());
+    try
+    {
+        logger.LogInformation("GET /comments");
+
+        return Results.Ok(service.GetAll());
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Ошибка при получении комментариев");
+
+        return Results.Problem("Произошла ошибка при получении комментариев");
+    }
 });
 
-app.MapGet("/comments/{id:int}", (int id, CommentService service) =>
+app.MapGet("/comments/{id:int}", (int id, CommentService service, ILogger<Program> logger) =>
 {
-    var comment = service.GetById(id);
+    try
+    {
+        var comment = service.GetById(id);
+        logger.LogInformation("GET /comments/{Id}, найдено: {Found}", id, comment != null);
 
-    return comment is not null ? Results.Ok(comment) : Results.NotFound();
+        return comment is not null ? Results.Ok(comment) : Results.NotFound();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Ошибка при получении комментария ID: {Id}", id);
+
+        return Results.Problem("Ошибка при получении комментария");
+    }
 });
 
-app.MapPost("/comments", (Comment comment, CommentService service) =>
+app.MapPost("/comments", (Comment comment, CommentService service, ILogger<Program> logger) =>
 {
-    var added = service.Add(comment);
+    try
+    {
+        var added = service.Add(comment);
+        logger.LogInformation("POST /comments, создан ID: {Id}", added.Id);
 
-    return Results.Created($"/comments/{added.Id}", added);
+        return Results.Created($"/comments/{added.Id}", added);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Ошибка при создании комментария");
+
+        return Results.Problem("Ошибка при создании комментария");
+    }
 });
 
-app.MapPatch("/comments/{id:int}", (int id, Comment updatedFields, CommentService service) =>
+app.MapPatch("/comments/{id:int}", (int id, Comment updatedFields, CommentService service, ILogger<Program> logger) =>
 {
-    var updated = service.Update(id, updatedFields);
+    try
+    {
+        var updated = service.Update(id, updatedFields);
+        logger.LogInformation("PATCH /comments/{Id}, обновлено: {Success}", id, updated != null);
 
-    return updated is not null ? Results.Ok(updated) : Results.NotFound();
+        return updated is not null ? Results.Ok(updated) : Results.NotFound();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Ошибка при обновлении комментария ID: {Id}", id);
+
+        return Results.Problem("Ошибка при обновлении комментария");
+    }
 });
 
-app.MapDelete("/comments/{id:int}", (int id, CommentService service) =>
+app.MapDelete("/comments/{id:int}", (int id, CommentService service, ILogger<Program> logger) =>
 {
-    return service.Delete(id) ? Results.NoContent() : Results.NotFound();
+    try
+    {
+        var deleted = service.Delete(id);
+        logger.LogInformation("DELETE /comments/{Id}, удалено: {Success}", id, deleted);
+
+        return deleted ? Results.NoContent() : Results.NotFound();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Ошибка при удалении комментария ID: {Id}", id);
+
+        return Results.Problem("Ошибка при удалении комментария");
+    }
+});
+
+
+app.MapGet("/logs", (CommentDBContext context) =>
+{
+    var logs = context.Logs
+        .OrderByDescending(l => l.Timestamp)
+        .Take(100)
+        .ToList();
+
+    return Results.Ok(logs);
 });
 
 app.UseCors();

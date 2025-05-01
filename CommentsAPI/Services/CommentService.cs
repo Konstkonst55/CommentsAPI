@@ -3,7 +3,7 @@ using CommentsAPI.Repositories;
 
 namespace CommentsAPI.Services
 {
-public class CommentService
+    public class CommentService
     {
         private readonly ICommentRepository _repository;
 
